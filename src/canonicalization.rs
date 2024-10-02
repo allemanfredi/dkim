@@ -1,12 +1,15 @@
 // Inspired from https://docs.rs/dkim/latest/src/dkim/canonicalization.rs.html
 use crate::bytes;
+use alloc::borrow::ToOwned;
+use ark_std::string::String;
+use ark_std::vec::Vec;
 
 #[derive(PartialEq, Clone, Debug)]
 pub enum Type {
     Simple,
     Relaxed,
 }
-impl std::string::ToString for Type {
+impl ark_std::string::ToString for Type {
     fn to_string(&self) -> String {
         match self {
             Self::Simple => "simple".to_owned(),

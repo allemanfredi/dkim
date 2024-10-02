@@ -1,4 +1,6 @@
 use crate::{canonicalization, DKIMError};
+use alloc::borrow::ToOwned;
+use ark_std::string::String;
 
 #[derive(Clone)]
 /// Result of the DKIM verification

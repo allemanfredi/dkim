@@ -1,8 +1,9 @@
-use std::collections::HashMap;
+use ark_std::collections::HashMap;
+use ark_std::string::String;
+use ark_std::vec::Vec;
 
 use base64::engine::general_purpose;
 use base64::Engine;
-use slog::debug;
 
 use crate::canonicalization::{
     self, canonicalize_body_relaxed, canonicalize_body_simple, canonicalize_header_relaxed,
@@ -104,7 +105,6 @@ fn select_headers<'a>(
 }
 
 pub(crate) fn compute_headers_hash<'a, 'b>(
-    logger: &slog::Logger,
     canonicalization_type: canonicalization::Type,
     headers: &'b str,
     hash_algo: HashAlgo,
@@ -139,7 +139,6 @@ pub(crate) fn compute_headers_hash<'a, 'b>(
 
         input.extend_from_slice(&canonicalized_value);
     }
-    debug!(logger, "headers to hash: {:?}", input);
 
     let hash = match hash_algo {
         HashAlgo::RsaSha1 => hash_sha1(&input),
@@ -151,6 +150,8 @@ pub(crate) fn compute_headers_hash<'a, 'b>(
 
 #[cfg(test)]
 mod tests {
+    use alloc::borrow::ToOwned;
+
     use super::*;
 
     fn dkim_header() -> DKIMHeader {
@@ -320,10 +321,8 @@ Hello Alice
         let canonicalization_type = canonicalization::Type::Simple;
         let hash_algo = HashAlgo::RsaSha1;
         let headers = "To: Subject".to_owned();
-        let logger = slog::Logger::root(slog::Discard, slog::o!());
         assert_eq!(
             compute_headers_hash(
-                &logger,
                 canonicalization_type.clone(),
                 &headers,
                 hash_algo,
@@ -339,7 +338,6 @@ Hello Alice
         let hash_algo = HashAlgo::RsaSha256;
         assert_eq!(
             compute_headers_hash(
-                &logger,
                 canonicalization_type,
                 &headers,
                 hash_algo,
@@ -370,10 +368,8 @@ Hello Alice
         let canonicalization_type = canonicalization::Type::Relaxed;
         let hash_algo = HashAlgo::RsaSha1;
         let headers = "To: Subject".to_owned();
-        let logger = slog::Logger::root(slog::Discard, slog::o!());
         assert_eq!(
             compute_headers_hash(
-                &logger,
                 canonicalization_type.clone(),
                 &headers,
                 hash_algo,
@@ -389,7 +385,6 @@ Hello Alice
         let hash_algo = HashAlgo::RsaSha256;
         assert_eq!(
             compute_headers_hash(
-                &logger,
                 canonicalization_type,
                 &headers,
                 hash_algo,

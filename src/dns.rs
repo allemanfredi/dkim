@@ -1,6 +1,9 @@
 use crate::DKIMError;
+use ark_std::boxed::Box;
+use ark_std::string::String;
+use ark_std::sync::Arc;
+use ark_std::vec::Vec;
 use futures::future::BoxFuture;
-use std::sync::Arc;
 use trust_dns_resolver::error::{ResolveError, ResolveErrorKind};
 use trust_dns_resolver::TokioAsyncResolver;
 

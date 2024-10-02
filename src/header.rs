@@ -1,8 +1,12 @@
 use crate::{parser, DKIMError};
+use alloc::borrow::ToOwned;
+use alloc::string::ToString;
+use ark_std::string::String;
+use ark_std::vec::Vec;
 use indexmap::map::IndexMap;
 
-pub(crate) const HEADER: &str = "DKIM-Signature";
-pub(crate) const REQUIRED_TAGS: &[&str] = &["v", "a", "b", "bh", "d", "h", "s"];
+pub const HEADER: &str = "DKIM-Signature";
+pub const REQUIRED_TAGS: &[&str] = &["v", "a", "b", "bh", "d", "h", "s"];
 
 #[derive(Debug, Clone)]
 pub struct DKIMHeader {
@@ -11,15 +15,15 @@ pub struct DKIMHeader {
 }
 
 impl DKIMHeader {
-    pub(crate) fn get_tag(&self, name: &str) -> Option<String> {
+    pub fn get_tag(&self, name: &str) -> Option<String> {
         self.tags.get(name).map(|v| v.value.clone())
     }
 
-    pub(crate) fn get_raw_tag(&self, name: &str) -> Option<String> {
+    pub fn get_raw_tag(&self, name: &str) -> Option<String> {
         self.tags.get(name).map(|v| v.raw_value.clone())
     }
 
-    pub(crate) fn get_required_tag(&self, name: &str) -> String {
+    pub fn get_required_tag(&self, name: &str) -> String {
         // Required tags are guaranteed by the parser to be present so it's safe
         // to assert and unwrap.
         debug_assert!(REQUIRED_TAGS.contains(&name));

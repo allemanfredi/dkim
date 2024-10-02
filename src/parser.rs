@@ -1,4 +1,8 @@
 use crate::{canonicalization, hash, DKIMError};
+use alloc::borrow::ToOwned;
+use alloc::string::ToString;
+use ark_std::string::String;
+use ark_std::vec::Vec;
 use nom::bytes::complete::tag;
 use nom::bytes::complete::take_while1;
 use nom::character::complete::alpha1;
@@ -136,6 +140,8 @@ pub(crate) fn parse_canonicalization(
 
 #[cfg(test)]
 mod tests {
+    use alloc::string::ToString;
+
     use super::*;
 
     #[test]

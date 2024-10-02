@@ -1,3 +1,6 @@
+use alloc::string::ToString;
+use ark_std::string::String;
+use ark_std::vec::Vec;
 use base64::engine::general_purpose;
 use base64::Engine;
 use ed25519_dalek::Signer;
@@ -17,7 +20,6 @@ pub struct SignerBuilder<'a> {
     time: Option<chrono::DateTime<chrono::offset::Utc>>,
     header_canonicalization: canonicalization::Type,
     body_canonicalization: canonicalization::Type,
-    logger: Option<&'a slog::Logger>,
     expiry: Option<chrono::Duration>,
 }
 
@@ -28,7 +30,6 @@ impl<'a> SignerBuilder<'a> {
             signed_headers: None,
             private_key: None,
             selector: None,
-            logger: None,
             signing_domain: None,
             expiry: None,
             time: None,
@@ -80,12 +81,6 @@ impl<'a> SignerBuilder<'a> {
         self
     }
 
-    /// Specify a logger
-    pub fn with_logger(mut self, logger: &'a slog::Logger) -> Self {
-        self.logger = Some(logger);
-        self
-    }
-
     /// Specify current time. Mostly used for testing
     pub fn with_time(mut self, value: chrono::DateTime<chrono::offset::Utc>) -> Self {
         self.time = Some(value);
@@ -99,7 +94,7 @@ impl<'a> SignerBuilder<'a> {
     }
 
     /// Build an instance of the Signer
-    /// Must be provided: signed_headers, private_key, selector, logger and
+    /// Must be provided: signed_headers, private_key, selector and
     /// signing_domain.
     pub fn build(self) -> Result<DKIMSigner<'a>, DKIMError> {
         use DKIMError::BuilderError;
@@ -120,10 +115,9 @@ impl<'a> SignerBuilder<'a> {
             selector: self
                 .selector
                 .ok_or(BuilderError("missing required selector"))?,
-            logger: self.logger.ok_or(BuilderError("missing required logger"))?,
             signing_domain: self
                 .signing_domain
-                .ok_or(BuilderError("missing required logger"))?,
+                .ok_or(BuilderError("missing required signing domain"))?,
             header_canonicalization: self.header_canonicalization,
             body_canonicalization: self.body_canonicalization,
             expiry: self.expiry,
@@ -146,7 +140,6 @@ pub struct DKIMSigner<'a> {
     signing_domain: &'a str,
     header_canonicalization: canonicalization::Type,
     body_canonicalization: canonicalization::Type,
-    logger: &'a slog::Logger,
     expiry: Option<chrono::Duration>,
     hash_algo: hash::HashAlgo,
     time: Option<chrono::DateTime<chrono::offset::Utc>>,
@@ -242,7 +235,6 @@ impl<'a> DKIMSigner<'a> {
         let signed_headers = dkim_header.get_required_tag("h");
 
         hash::compute_headers_hash(
-            self.logger,
             canonicalization,
             &signed_headers,
             self.hash_algo.clone(),
@@ -255,13 +247,9 @@ impl<'a> DKIMSigner<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ark_std::{fs, path::Path};
     use chrono::TimeZone;
     use rsa::pkcs1::DecodeRsaPrivateKey;
-    use std::{fs, path::Path};
-
-    fn test_logger() -> slog::Logger {
-        slog::Logger::root(slog::Discard, slog::o!())
-    }
 
     #[test]
     fn test_sign_rsa() {
@@ -277,7 +265,6 @@ Hello Alice
 
         let private_key =
             rsa::RsaPrivateKey::read_pkcs1_pem_file(Path::new("./test/keys/2022.private")).unwrap();
-        let logger = test_logger();
         let time = chrono::Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 1).unwrap();
 
         let signer = SignerBuilder::new()
@@ -285,7 +272,6 @@ Hello Alice
             .unwrap()
             .with_private_key(DkimPrivateKey::Rsa(private_key))
             .with_selector("s20")
-            .with_logger(&logger)
             .with_signing_domain("example.com")
             .with_time(time)
             .build()
@@ -317,7 +303,6 @@ Joe."#
 
         let signing_key = ed25519_dalek::SigningKey::from_bytes(&secret_key);
 
-        let logger = test_logger();
         let time = chrono::Utc
             .with_ymd_and_hms(2018, 6, 10, 13, 38, 29)
             .unwrap();
@@ -338,7 +323,6 @@ Joe."#
             .with_body_canonicalization(canonicalization::Type::Relaxed)
             .with_header_canonicalization(canonicalization::Type::Relaxed)
             .with_selector("brisbane")
-            .with_logger(&logger)
             .with_signing_domain("football.example.com")
             .with_time(time)
             .build()

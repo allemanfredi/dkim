@@ -1,4 +1,5 @@
 //! Various utility functions to operate on bytes
+use ark_std::vec::Vec;
 
 pub(crate) fn get_all_after<'a>(bytes: &'a [u8], end: &[u8]) -> &'a [u8] {
     if let Some(mut end_index) = find(bytes, end) {
